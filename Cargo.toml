@@ -5,7 +5,8 @@ authors = ["Boscop"]
 edition = '2018'
 
 [dependencies]
-yew = { git = 'https://github.com/DenisKolodin/yew', rev = '5e6a8af' }
+#yew = { git = 'https://github.com/DenisKolodin/yew', rev = '5e6a8af' }
+yew = "0.19"
 stdweb = "0.4"
 serde = "1.0"
 serde_derive = "1.0"

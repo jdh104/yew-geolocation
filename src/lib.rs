@@ -37,6 +37,7 @@ serde_conv!(serde_pos_err_code, PositionErrorCode, |x: u16| match x {
     _ => unreachable!(),
 });
 
+use measurements::{Angle, Length, Speed};
 use serde_derive::*;
 use smart_default::*;
 use wasm_bindgen::prelude::*;
@@ -48,43 +49,41 @@ use yew::prelude::*;
 
 pub type DOMTimeStamp = u64;
 
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct Position {
-    pub coords: Coordinates,
+    pub coords: Option<Coordinates>,
     pub timestamp: Option<DOMTimeStamp>,
 }
 
 impl From<JsValue> for Position {
     fn from(js_val: JsValue) -> Self {
         let geo_pos = GeolocationPosition::from(js_val);
-        let geo_coords = geo_pos.coords();
 
         Position {
-            coords: Coordinates {
-                latitude: geo_coords.latitude(),
-                longitude: geo_coords.longitude(),
-                accuracy: geo_coords.accuracy(),
-                altitude: geo_coords.altitude(),
-                altitude_accuracy: geo_coords.altitude_accuracy(),
-                heading: geo_coords.heading(),
-                speed: geo_coords.speed(),
-            },
+            coords: geo_pos.coords().map(|coords| Coordinates {
+                latitude: coords.latitude(),
+                longitude: coords.longitude(),
+                accuracy: coords.accuracy().map(Length::from_meters),
+                altitude: coords.altitude().map(Length::from_meters),
+                altitude_accuracy: coords.altitude_accuracy().map(Length::from_meters),
+                heading: coords.heading().map(Angle::from_degrees),
+                speed: coords.speed().map(Speed::from_meters_per_second),
+            }),
 
-            timestamp: None,
+            timestamp: geo_pos.timestamp(),
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct Coordinates {
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
-    pub altitude: Option<f64>,
-    pub accuracy: Option<f64>,
-    #[serde(rename = "altitudeAccuracy")]
-    pub altitude_accuracy: Option<f64>,
-    pub heading: Option<f64>,
-    pub speed: Option<f64>,
+    pub altitude: Option<Length>,
+    pub accuracy: Option<Length>,
+    pub altitude_accuracy: Option<Length>,
+    pub heading: Option<Angle>,
+    pub speed: Option<Speed>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, SmartDefault)]
@@ -169,7 +168,10 @@ extern "C" {
     pub type GeolocationPosition;
 
     #[wasm_bindgen(method, getter)]
-    fn coords(this: &GeolocationPosition) -> GeolocationCoordinates;
+    fn coords(this: &GeolocationPosition) -> Option<GeolocationCoordinates>;
+
+    #[wasm_bindgen(method, getter)]
+    fn timestamp(this: &GeolocationPosition) -> Option<DOMTimeStamp>;
 }
 
 impl GeolocationService {

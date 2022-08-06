@@ -13,6 +13,7 @@ smart-default = "0.2"
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = [ "Navigator", "Geolocation", "PositionOptions" ] }
 js-sys = "0.3"
+measurements = "0.11"
 
 [dev-dependencies]
 derive-new = "0.5"

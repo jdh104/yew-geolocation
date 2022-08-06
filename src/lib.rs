@@ -61,13 +61,13 @@ impl From<JsValue> for Position {
 
         Position {
             coords: Coordinates {
-                latitude: Some(geo_coords.latitude()),
-                longitude: Some(geo_coords.longitude()),
-                accuracy: None,
-                altitude: None,
-                altitude_accuracy: None,
-                heading: None,
-                speed: None,
+                latitude: geo_coords.latitude(),
+                longitude: geo_coords.longitude(),
+                accuracy: geo_coords.accuracy(),
+                altitude: geo_coords.altitude(),
+                altitude_accuracy: geo_coords.altitude_accuracy(),
+                heading: geo_coords.heading(),
+                speed: geo_coords.speed(),
             },
 
             timestamp: None,
@@ -145,10 +145,25 @@ extern "C" {
     type GeolocationCoordinates;
 
     #[wasm_bindgen(method, getter)]
-    fn latitude(this: &GeolocationCoordinates) -> f64;
+    fn latitude(this: &GeolocationCoordinates) -> Option<f64>;
 
     #[wasm_bindgen(method, getter)]
-    fn longitude(this: &GeolocationCoordinates) -> f64;
+    fn longitude(this: &GeolocationCoordinates) -> Option<f64>;
+
+    #[wasm_bindgen(method, getter)]
+    fn altitude(this: &GeolocationCoordinates) -> Option<f64>;
+
+    #[wasm_bindgen(method, getter)]
+    fn accuracy(this: &GeolocationCoordinates) -> Option<f64>;
+
+    #[wasm_bindgen(method, getter, js_name = altitudeAccuracy)]
+    fn altitude_accuracy(this: &GeolocationCoordinates) -> Option<f64>;
+
+    #[wasm_bindgen(method, getter)]
+    fn heading(this: &GeolocationCoordinates) -> Option<f64>;
+
+    #[wasm_bindgen(method, getter)]
+    fn speed(this: &GeolocationCoordinates) -> Option<f64>;
 
     #[derive(Debug)]
     pub type GeolocationPosition;

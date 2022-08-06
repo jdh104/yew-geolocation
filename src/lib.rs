@@ -120,7 +120,7 @@ impl From<JsValue> for PositionError {
     fn from(js_val: JsValue) -> Self {
         js_val.into_serde().unwrap_or_else(|err| PositionError {
             code: PositionErrorCode::FailedToDeserialize,
-            message: format!("{err:?}"),
+            message: format!("js_val = {js_val:?}, err = {err:?}"),
         })
     }
 }

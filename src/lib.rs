@@ -120,6 +120,7 @@ pub struct GeolocationService {}
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     type GeolocationCoordinates;
 
     #[wasm_bindgen(method, getter)]
@@ -128,6 +129,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     fn longitude(this: &GeolocationCoordinates) -> f64;
 
+    #[derive(Debug)]
     pub type GeolocationPosition;
 
     #[wasm_bindgen(method, getter)]

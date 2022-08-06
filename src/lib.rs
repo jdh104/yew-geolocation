@@ -51,15 +51,36 @@ pub type DOMTimeStamp = u64;
 #[derive(Debug, Copy, Clone, Deserialize)]
 pub struct Position {
     pub coords: Coordinates,
-    pub timestamp: DOMTimeStamp,
+    pub timestamp: Option<DOMTimeStamp>,
+}
+
+impl From<JsValue> for Position {
+    fn from(js_val: JsValue) -> Self {
+        let geo_pos = GeolocationPosition::from(js_val);
+        let geo_coords = geo_pos.coords();
+
+        Position {
+            coords: Coordinates {
+                latitude: Some(geo_coords.latitude()),
+                longitude: Some(geo_coords.longitude()),
+                accuracy: None,
+                altitude: None,
+                altitude_accuracy: None,
+                heading: None,
+                speed: None,
+            },
+
+            timestamp: None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Deserialize)]
 pub struct Coordinates {
-    pub latitude: f64,
-    pub longitude: f64,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
     pub altitude: Option<f64>,
-    pub accuracy: f64,
+    pub accuracy: Option<f64>,
     #[serde(rename = "altitudeAccuracy")]
     pub altitude_accuracy: Option<f64>,
     pub heading: Option<f64>,
@@ -147,7 +168,7 @@ impl GeolocationService {
 
     pub fn get_current_position(
         &self,
-        success_cb: Callback<GeolocationPosition>,
+        success_cb: Callback<Position>,
         error_cb: Option<Callback<PositionError>>,
         options: Option<PositionOptions>,
     ) {
@@ -209,7 +230,7 @@ impl GeolocationService {
 
     pub fn watch_position(
         &mut self,
-        success_cb: Callback<GeolocationPosition>,
+        success_cb: Callback<Position>,
         error_cb: Option<Callback<PositionError>>,
         options: Option<PositionOptions>,
     ) -> Option<WatchPositionTask> {

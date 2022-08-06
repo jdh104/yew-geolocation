@@ -2,25 +2,25 @@
 #![recursion_limit = "128"]
 
 /// serializes a type as a different repr type using the given conversion functions
-#[macro_export]
-macro_rules! serde_conv {
-    ($m:ident, $t:ty, /*$ser:expr,*/ $de:expr) => {
-        pub mod $m {
-            use super::*;
-            use ::serde::{/*Serialize, Serializer,*/ Deserialize, Deserializer};
-            /*
-                        pub fn serialize<S: Serializer>(x: &$t, serializer: S) -> Result<S::Ok, S::Error> {
-                            let y = $ser(*x);
-                            y.serialize(serializer)
-                        }
-            */
-            pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<$t, D::Error> {
-                let y = Deserialize::deserialize(deserializer)?;
-                Ok($de(y))
-            }
-        }
-    };
-}
+//#[macro_export]
+//macro_rules! serde_conv {
+//    ($m:ident, $t:ty, /*$ser:expr,*/ $de:expr) => {
+//        pub mod $m {
+//            use super::*;
+//            use ::serde::{/*Serialize, Serializer,*/ Deserialize, Deserializer};
+//            /*
+//                        pub fn serialize<S: Serializer>(x: &$t, serializer: S) -> Result<S::Ok, S::Error> {
+//                            let y = $ser(*x);
+//                            y.serialize(serializer)
+//                        }
+//            */
+//            pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<$t, D::Error> {
+//                let y = Deserialize::deserialize(deserializer)?;
+//                Ok($de(y))
+//            }
+//        }
+//    };
+//}
 
 macro_rules! cb_to_js_fn {
     ($cb:ident) => {
@@ -28,16 +28,17 @@ macro_rules! cb_to_js_fn {
     };
 }
 
-serde_conv!(serde_pos_err_code, PositionErrorCode, |x: u16| match x {
-    1 => PositionErrorCode::PermissionDenied,
-    2 => PositionErrorCode::PositionUnavailable,
-    3 => PositionErrorCode::Timeout,
-    4 => PositionErrorCode::FailedToDeserialize,
-    5 => PositionErrorCode::NoBrowserSupport,
-    _ => unreachable!(),
-});
+//serde_conv!(serde_pos_err_code, PositionErrorCode, |x: u16| match x {
+//    1 => PositionErrorCode::PermissionDenied,
+//    2 => PositionErrorCode::PositionUnavailable,
+//    3 => PositionErrorCode::Timeout,
+//    4 => PositionErrorCode::FailedToDeserialize,
+//    5 => PositionErrorCode::NoBrowserSupport,
+//    _ => unreachable!(),
+//});
 
 use measurements::{Angle, Length, Speed};
+use num_derive::FromPrimitive;
 use serde_derive::*;
 use smart_default::*;
 use wasm_bindgen::prelude::*;
@@ -109,25 +110,35 @@ impl From<PositionOptions> for web_sys::PositionOptions {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct PositionError {
-    #[serde(with = "serde_pos_err_code")]
     pub code: PositionErrorCode,
-    pub message: String,
+    pub message: Option<String>,
 }
 
 impl From<JsValue> for PositionError {
     fn from(js_val: JsValue) -> Self {
-        js_val.into_serde().unwrap_or_else(|err| PositionError {
-            code: PositionErrorCode::FailedToDeserialize,
-            message: format!("js_val = {js_val:?}, err = {err:?}"),
-        })
+        let geo_pos_err = GeolocationPositionError::from(js_val);
+
+        PositionError {
+            code: geo_pos_err
+                .code()
+                .and_then(|err_code| num::FromPrimitive::from_i32(err_code))
+                .unwrap_or(PositionErrorCode::Unknown),
+            message: geo_pos_err.message(),
+        }
+
+        //js_val.into_serde().unwrap_or_else(|err| PositionError {
+        //    code: PositionErrorCode::FailedToDeserialize,
+        //    message: format!("js_val = {js_val:?}, err = {err:?}"),
+        //})
     }
 }
 
 #[repr(u16)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, FromPrimitive, PartialEq)]
 pub enum PositionErrorCode {
+    Unknown = 0,
     PermissionDenied = 1,
     PositionUnavailable = 2,
     Timeout = 3,
@@ -173,6 +184,15 @@ extern "C" {
     // this tends to throw a TypeError... not sure why
     #[wasm_bindgen(method, getter, catch)]
     fn timestamp(this: &GeolocationPosition) -> Result<DOMTimeStamp, JsValue>;
+
+    #[derive(Debug)]
+    pub type GeolocationPositionError;
+
+    #[wasm_bindgen(method, getter)]
+    fn code(this: &GeolocationPositionError) -> Option<i32>;
+
+    #[wasm_bindgen(method, getter)]
+    fn message(this: &GeolocationPositionError) -> Option<String>;
 }
 
 impl GeolocationService {
@@ -196,7 +216,9 @@ impl GeolocationService {
                     None => {}
                     Some(cb) => cb.emit(PositionError {
                         code: PositionErrorCode::NoBrowserSupport,
-                        message: "Could not get a handle on 'window.navigator.geolocation'".into(),
+                        message: Some(
+                            "Could not get a handle on 'window.navigator.geolocation'".into(),
+                        ),
                     }),
                 };
             }

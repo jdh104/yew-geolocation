@@ -70,7 +70,7 @@ impl From<JsValue> for Position {
                 speed: coords.speed().map(Speed::from_meters_per_second),
             }),
 
-            timestamp: geo_pos.timestamp(),
+            timestamp: geo_pos.timestamp().ok(),
         }
     }
 }
@@ -170,8 +170,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     fn coords(this: &GeolocationPosition) -> Option<GeolocationCoordinates>;
 
-    #[wasm_bindgen(method, getter)]
-    fn timestamp(this: &GeolocationPosition) -> Option<DOMTimeStamp>;
+    // this tends to throw a TypeError... not sure why
+    #[wasm_bindgen(method, getter, catch)]
+    fn timestamp(this: &GeolocationPosition) -> Result<DOMTimeStamp, JsValue>;
 }
 
 impl GeolocationService {
@@ -218,28 +219,10 @@ impl GeolocationService {
                             &web_sys::PositionOptions::from(opts),
                         );
 
-                        //match options {
-                        //    None => {
-                        //        // don't know why we would get an error here when we are supplying an error callback
-                        //        let _ = geolocation.get_current_position_with_error_callback(
-                        //            &on_success.as_ref().unchecked_ref(),
-                        //            Some(&on_fail.as_ref().unchecked_ref()),
-                        //        );
-                        //    }
-                        //    Some(opts) => {
-                        //        // don't know why we would get an error here when we are supplying an error callback
-                        //        let _ = geolocation
-                        //            .get_current_position_with_error_callback_and_options(
-                        //                &on_success.as_ref().unchecked_ref(),
-                        //                Some(&on_fail.as_ref().unchecked_ref()),
-                        //                &web_sys::PositionOptions::from(opts),
-                        //            );
-                        //    }
-                        //}
-
                         on_fail.forget();
                     }
                 }
+
                 on_success.forget();
             }
         }
